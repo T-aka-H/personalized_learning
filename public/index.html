@@ -335,7 +335,7 @@
             <!-- 結果・学習コンテンツセクション -->
             <div id="resultSection" class="result-section">
                 <div id="resultContent"></div>
-                <button class="btn" onclick="generateLearningContent()">📖 学習コンテンツを生成</button>
+                <button class="btn" onclick="generateLearningContent()">📄 学習コンテンツを生成（テキスト版）</button>
             </div>
 
             <!-- ローディング -->
@@ -445,14 +445,25 @@
             let beginnerCorrect = 0;
             let intermediateCorrect = 0;
             let advancedCorrect = 0;
+            let totalCorrect = 0;
             
             for (let i = 0; i < questions.length; i++) {
                 if (answers[i] === questions[i].correct) {
+                    totalCorrect++;
                     if (questions[i].level === 'beginner') beginnerCorrect++;
                     else if (questions[i].level === 'intermediate') intermediateCorrect++;
                     else if (questions[i].level === 'advanced') advancedCorrect++;
                 }
             }
+
+            // グローバル変数に結果を保存
+            window.quizResults = {
+                total: questions.length,
+                correct: totalCorrect,
+                beginner: { correct: beginnerCorrect, total: 3 },
+                intermediate: { correct: intermediateCorrect, total: 4 },
+                advanced: { correct: advancedCorrect, total: 3 }
+            };
 
             // レベル判定ロジック
             const beginnerRate = beginnerCorrect / 3; // 初級問題3問
@@ -492,6 +503,18 @@
             
             document.getElementById('resultContent').innerHTML = `
                 <h2>🎉 レベル判定結果</h2>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h3>📊 詳細結果</h3>
+                    <p><strong>総合正解数:</strong> ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)</p>
+                    
+                    <div style="margin: 15px 0;">
+                        <p><strong>📗 初級レベル:</strong> ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解</p>
+                        <p><strong>📘 中級レベル:</strong> ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解</p>
+                        <p><strong>📕 上級レベル:</strong> ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解</p>
+                    </div>
+                </div>
+
                 <p>あなたの<strong>${keyword}</strong>に関するレベルは：</p>
                 <div class="level-badge ${levelClass[userLevel]}">${levelText[userLevel]}レベル</div>
                 <p>${levelDescription[userLevel]}</p>
@@ -518,7 +541,7 @@
                 const data = await response.json();
                 hideLoading();
                 generatePDF(data.content);
-                showSuccess('学習コンテンツが生成され、PDFがダウンロードされました！');
+                showSuccess('学習コンテンツが生成され、日本語テキストファイルがダウンロードされました！');
             } catch (error) {
                 hideLoading();
                 showError('学習コンテンツの生成に失敗しました: ' + error.message);
@@ -526,6 +549,49 @@
         }
 
         function generatePDF(content) {
+            // 日本語テキストファイルをダウンロード
+            const levelText = {
+                'beginner': '初級',
+                'intermediate': '中級', 
+                'advanced': '上級'
+            };
+
+            const textContent = `
+${keyword} 学習ガイド
+対象レベル: ${levelText[userLevel]}
+生成日: ${new Date().toLocaleDateString('ja-JP')}
+
+📊 クイズ結果:
+- 総合正解数: ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)
+- 📗 初級レベル: ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解
+- 📘 中級レベル: ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解  
+- 📕 上級レベル: ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解
+
+判定レベル: ${levelText[userLevel]}
+
+====================================
+
+${content}
+            `.trim();
+
+            // テキストファイルとしてダウンロード
+            const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${keyword}_${levelText[userLevel]}レベル_学習ガイド.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // 日本語PDF版も生成
+            setTimeout(() => {
+                generateJapanesePDF(textContent);
+            }, 1000);
+        }
+
+        function generateJapanesePDF(textContent) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
@@ -541,153 +607,78 @@
             const margin = 20;
             const maxWidth = pageWidth - (margin * 2);
             let y = margin;
-            const lineHeight = 7;
+            const lineHeight = 6;
             
-            // カスタム日本語フォント設定（基本的なASCII文字のみ使用）
             doc.setFont("helvetica");
+            doc.setFontSize(16);
             
-            // タイトルページ
-            doc.setFontSize(20);
-            const title = `${keyword} gakushu guide`;
-            doc.text(title, margin, y);
+            // タイトル
+            doc.text(`${keyword} Learning Guide`, margin, y);
+            y += 12;
+            
+            doc.setFontSize(12);
+            doc.text(`Level: ${levelText[userLevel]}`, margin, y);
+            y += 8;
+            doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, y);
             y += 15;
             
-            doc.setFontSize(14);
-            const level = `Level: ${levelText[userLevel]}`;
-            doc.text(level, margin, y);
+            // クイズ結果
+            doc.text('Quiz Results:', margin, y);
+            y += 8;
+            doc.text(`Total Score: ${window.quizResults.correct}/${window.quizResults.total} (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)`, margin + 10, y);
+            y += 6;
+            doc.text(`Beginner: ${window.quizResults.beginner.correct}/${window.quizResults.beginner.total}`, margin + 10, y);
+            y += 6;
+            doc.text(`Intermediate: ${window.quizResults.intermediate.correct}/${window.quizResults.intermediate.total}`, margin + 10, y);
+            y += 6;
+            doc.text(`Advanced: ${window.quizResults.advanced.correct}/${window.quizResults.advanced.total}`, margin + 10, y);
+            y += 15;
+            
+            // 区切り線
+            doc.line(margin, y, pageWidth - margin, y);
             y += 10;
             
-            const date = `Date: ${new Date().toLocaleDateString('ja-JP')}`;
-            doc.text(date, margin, y);
-            y += 20;
+            // 注意書き
+            doc.text('Note: For complete Japanese content, please refer to the text file.', margin, y);
+            y += 10;
+            doc.text('This PDF contains the structure and quiz results for reference.', margin, y);
+            y += 15;
             
-            // 日本語対応のための文字変換関数
-            function convertToDisplayableText(text) {
-                // 基本的な文字変換（簡単な例）
-                return text
-                    .replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, function(char) {
-                        // 日本語文字を類似のASCII文字に変換
-                        const charCode = char.charCodeAt(0);
-                        if (charCode >= 0x3040 && charCode <= 0x309F) { // ひらがな
-                            return String.fromCharCode(97 + (charCode - 0x3040) % 26);
-                        } else if (charCode >= 0x30A0 && charCode <= 0x30FF) { // カタカナ
-                            return String.fromCharCode(65 + (charCode - 0x30A0) % 26);
-                        } else { // 漢字
-                            return String.fromCharCode(48 + (charCode - 0x4E00) % 10);
-                        }
-                    });
-            }
+            // 基本的な構造情報のみ
+            const basicInfo = `
+This learning guide is customized for your level.
+
+Content Structure:
+- Fundamental concepts and knowledge
+- Practical applications and examples
+- Key techniques and best practices
+- Common mistakes and solutions
+- Next steps for continued learning
+
+The detailed Japanese content is available in the 
+downloaded text file for complete learning material.
+            `.trim();
             
-            // より良いアプローチ: プレーンテキスト出力
-            function createReadablePDF(content) {
-                doc.addPage();
-                y = margin;
-                doc.setFontSize(12);
-                
-                // コンテンツをセクションごとに分割
-                const sections = content.split(/(?=#{1,3}\s)|(?=\d+\.)/);
-                
-                sections.forEach(section => {
-                    if (!section.trim()) return;
-                    
-                    const lines = section.split('\n').filter(line => line.trim());
-                    
-                    lines.forEach(line => {
-                        if (y > pageHeight - margin) {
-                            doc.addPage();
-                            y = margin;
-                        }
-                        
-                        const cleanLine = line.trim();
-                        if (cleanLine) {
-                            // ヘッダーの処理
-                            if (cleanLine.startsWith('#') || cleanLine.match(/^\d+\./)) {
-                                if (y > margin + 10) y += 5;
-                                doc.setFontSize(14);
-                                doc.setFont("helvetica", "bold");
-                                
-                                const headerText = cleanLine.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '');
-                                const romanizedHeader = toRomaji(headerText);
-                                const wrappedHeaders = doc.splitTextToSize(romanizedHeader, maxWidth);
-                                
-                                wrappedHeaders.forEach(wrappedHeader => {
-                                    doc.text(wrappedHeader, margin, y);
-                                    y += lineHeight + 2;
-                                });
-                                
-                                doc.setFontSize(12);
-                                doc.setFont("helvetica", "normal");
-                                y += 3;
-                            } else {
-                                // 通常のテキスト
-                                const romanizedText = toRomaji(cleanLine);
-                                const wrappedLines = doc.splitTextToSize(romanizedText, maxWidth);
-                                
-                                wrappedLines.forEach(wrappedLine => {
-                                    doc.text(wrappedLine, margin, y);
-                                    y += lineHeight;
-                                });
-                            }
-                        } else {
-                            y += lineHeight;
-                        }
-                    });
-                });
-            }
-            
-            // 簡単なローマ字変換関数（主要なキーワードのみ）
-            function toRomaji(text) {
-                const romajiMap = {
-                    // 学習関連用語
-                    '学習': 'gakushu',
-                    '初級': 'shokyu',
-                    '中級': 'chukyu', 
-                    '上級': 'jokyu',
-                    'レベル': 'level',
-                    'ガイド': 'guide',
-                    '基礎': 'kiso',
-                    '応用': 'oyo',
-                    '実践': 'jissen',
-                    '概要': 'gaiyo',
-                    '重要': 'juyo',
-                    '方法': 'hoho',
-                    '技術': 'gijutsu',
-                    '知識': 'chishiki',
-                    '理解': 'rikai',
-                    '習得': 'shutoku',
-                    '向上': 'kojo',
-                    '開発': 'kaihatsu',
-                    '設計': 'sekkei',
-                    '管理': 'kanri',
-                    '運用': 'unyo',
-                    '最適化': 'saitekika',
-                    'セキュリティ': 'security',
-                    'データベース': 'database',
-                    'プログラミング': 'programming',
-                    'アルゴリズム': 'algorithm',
-                    'フレームワーク': 'framework',
-                    'ライブラリ': 'library',
-                    'インターフェース': 'interface',
-                    'アーキテクチャ': 'architecture'
-                };
-                
-                let result = text;
-                for (const [japanese, romaji] of Object.entries(romajiMap)) {
-                    result = result.replace(new RegExp(japanese, 'g'), romaji);
+            const lines = basicInfo.split('\n');
+            lines.forEach(line => {
+                if (y > pageHeight - margin) {
+                    doc.addPage();
+                    y = margin;
                 }
                 
-                // 残りの日本語文字を [JP] で表示
-                result = result.replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+/g, '[JP]');
-                
-                return result;
-            }
-            
-            // PDFにコンテンツを追加
-            createReadablePDF(content);
+                if (line.trim()) {
+                    const wrappedLines = doc.splitTextToSize(line, maxWidth);
+                    wrappedLines.forEach(wrappedLine => {
+                        doc.text(wrappedLine, margin, y);
+                        y += lineHeight;
+                    });
+                } else {
+                    y += lineHeight;
+                }
+            });
             
             // PDFを保存
-            const filename = `${keyword.replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, 'JP')}_${levelText[userLevel]}_guide.pdf`;
-            doc.save(filename);
+            doc.save(`${keyword}_${levelText[userLevel]}_guide.pdf`);
         }
 
         function showLoading() {
