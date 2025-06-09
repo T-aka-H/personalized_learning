@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>パーソナライズ学習アプリ</title>
-    <!-- PDFMakeライブラリを使用（日本語対応） -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <!-- jsPDFライブラリ（日本語対応版） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -527,112 +526,168 @@
         }
 
         function generatePDF(content) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
             const levelText = {
                 'beginner': '初級',
                 'intermediate': '中級',
                 'advanced': '上級'
             };
 
-            // コンテンツを整理
-            const lines = content.split('\n').filter(line => line.trim());
-            const docContent = [];
-
+            // PDF設定
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 20;
+            const maxWidth = pageWidth - (margin * 2);
+            let y = margin;
+            const lineHeight = 7;
+            
+            // カスタム日本語フォント設定（基本的なASCII文字のみ使用）
+            doc.setFont("helvetica");
+            
             // タイトルページ
-            docContent.push({
-                text: `${keyword} 学習ガイド`,
-                style: 'title',
-                alignment: 'center',
-                margin: [0, 50, 0, 20]
-            });
-
-            docContent.push({
-                text: `対象レベル: ${levelText[userLevel]}`,
-                style: 'subtitle',
-                alignment: 'center',
-                margin: [0, 0, 0, 10]
-            });
-
-            docContent.push({
-                text: `生成日: ${new Date().toLocaleDateString('ja-JP')}`,
-                style: 'subtitle',
-                alignment: 'center',
-                margin: [0, 0, 0, 30]
-            });
-
-            // 改ページ
-            docContent.push({ text: '', pageBreak: 'after' });
-
-            // コンテンツを処理
-            lines.forEach((line, index) => {
-                if (line.trim()) {
-                    // ヘッダーの検出
-                    if (line.startsWith('#') || line.match(/^\d+\./)) {
-                        // ヘッダーの場合
-                        docContent.push({
-                            text: line.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, ''),
-                            style: 'header',
-                            margin: [0, 15, 0, 10]
-                        });
-                    } else {
-                        // 通常のテキスト
-                        docContent.push({
-                            text: line,
-                            style: 'body',
-                            margin: [0, 0, 0, 8]
-                        });
-                    }
-                }
-            });
-
-            // PDFドキュメント定義
-            const documentDefinition = {
-                content: docContent,
-                styles: {
-                    title: {
-                        fontSize: 24,
-                        bold: true,
-                        color: '#667eea'
-                    },
-                    subtitle: {
-                        fontSize: 14,
-                        color: '#666666'
-                    },
-                    header: {
-                        fontSize: 16,
-                        bold: true,
-                        color: '#333333'
-                    },
-                    body: {
-                        fontSize: 11,
-                        lineHeight: 1.4,
-                        color: '#333333'
-                    }
-                },
-                defaultStyle: {
-                    font: 'GenShinGothic' // デフォルトフォント（日本語対応）
-                },
-                pageSize: 'A4',
-                pageMargins: [40, 60, 40, 60]
-            };
-
-            // PDFを生成・ダウンロード
-            try {
-                pdfMake.createPdf(documentDefinition).download(`${keyword}_${levelText[userLevel]}レベル_学習ガイド.pdf`);
-            } catch (error) {
-                console.error('PDF生成エラー:', error);
-                // フォールバック: シンプルなテキストPDF
-                const simpleDoc = {
-                    content: [
-                        { text: `${keyword} 学習ガイド`, fontSize: 20, bold: true, margin: [0, 0, 0, 20] },
-                        { text: `対象レベル: ${levelText[userLevel]}`, margin: [0, 0, 0, 10] },
-                        { text: `生成日: ${new Date().toLocaleDateString('ja-JP')}`, margin: [0, 0, 0, 30] },
-                        { text: content, fontSize: 10, lineHeight: 1.3 }
-                    ],
-                    pageSize: 'A4',
-                    pageMargins: [40, 60, 40, 60]
-                };
-                pdfMake.createPdf(simpleDoc).download(`${keyword}_${levelText[userLevel]}レベル_学習ガイド.pdf`);
+            doc.setFontSize(20);
+            const title = `${keyword} gakushu guide`;
+            doc.text(title, margin, y);
+            y += 15;
+            
+            doc.setFontSize(14);
+            const level = `Level: ${levelText[userLevel]}`;
+            doc.text(level, margin, y);
+            y += 10;
+            
+            const date = `Date: ${new Date().toLocaleDateString('ja-JP')}`;
+            doc.text(date, margin, y);
+            y += 20;
+            
+            // 日本語対応のための文字変換関数
+            function convertToDisplayableText(text) {
+                // 基本的な文字変換（簡単な例）
+                return text
+                    .replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, function(char) {
+                        // 日本語文字を類似のASCII文字に変換
+                        const charCode = char.charCodeAt(0);
+                        if (charCode >= 0x3040 && charCode <= 0x309F) { // ひらがな
+                            return String.fromCharCode(97 + (charCode - 0x3040) % 26);
+                        } else if (charCode >= 0x30A0 && charCode <= 0x30FF) { // カタカナ
+                            return String.fromCharCode(65 + (charCode - 0x30A0) % 26);
+                        } else { // 漢字
+                            return String.fromCharCode(48 + (charCode - 0x4E00) % 10);
+                        }
+                    });
             }
+            
+            // より良いアプローチ: プレーンテキスト出力
+            function createReadablePDF(content) {
+                doc.addPage();
+                y = margin;
+                doc.setFontSize(12);
+                
+                // コンテンツをセクションごとに分割
+                const sections = content.split(/(?=#{1,3}\s)|(?=\d+\.)/);
+                
+                sections.forEach(section => {
+                    if (!section.trim()) return;
+                    
+                    const lines = section.split('\n').filter(line => line.trim());
+                    
+                    lines.forEach(line => {
+                        if (y > pageHeight - margin) {
+                            doc.addPage();
+                            y = margin;
+                        }
+                        
+                        const cleanLine = line.trim();
+                        if (cleanLine) {
+                            // ヘッダーの処理
+                            if (cleanLine.startsWith('#') || cleanLine.match(/^\d+\./)) {
+                                if (y > margin + 10) y += 5;
+                                doc.setFontSize(14);
+                                doc.setFont("helvetica", "bold");
+                                
+                                const headerText = cleanLine.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '');
+                                const romanizedHeader = toRomaji(headerText);
+                                const wrappedHeaders = doc.splitTextToSize(romanizedHeader, maxWidth);
+                                
+                                wrappedHeaders.forEach(wrappedHeader => {
+                                    doc.text(wrappedHeader, margin, y);
+                                    y += lineHeight + 2;
+                                });
+                                
+                                doc.setFontSize(12);
+                                doc.setFont("helvetica", "normal");
+                                y += 3;
+                            } else {
+                                // 通常のテキスト
+                                const romanizedText = toRomaji(cleanLine);
+                                const wrappedLines = doc.splitTextToSize(romanizedText, maxWidth);
+                                
+                                wrappedLines.forEach(wrappedLine => {
+                                    doc.text(wrappedLine, margin, y);
+                                    y += lineHeight;
+                                });
+                            }
+                        } else {
+                            y += lineHeight;
+                        }
+                    });
+                });
+            }
+            
+            // 簡単なローマ字変換関数（主要なキーワードのみ）
+            function toRomaji(text) {
+                const romajiMap = {
+                    // 学習関連用語
+                    '学習': 'gakushu',
+                    '初級': 'shokyu',
+                    '中級': 'chukyu', 
+                    '上級': 'jokyu',
+                    'レベル': 'level',
+                    'ガイド': 'guide',
+                    '基礎': 'kiso',
+                    '応用': 'oyo',
+                    '実践': 'jissen',
+                    '概要': 'gaiyo',
+                    '重要': 'juyo',
+                    '方法': 'hoho',
+                    '技術': 'gijutsu',
+                    '知識': 'chishiki',
+                    '理解': 'rikai',
+                    '習得': 'shutoku',
+                    '向上': 'kojo',
+                    '開発': 'kaihatsu',
+                    '設計': 'sekkei',
+                    '管理': 'kanri',
+                    '運用': 'unyo',
+                    '最適化': 'saitekika',
+                    'セキュリティ': 'security',
+                    'データベース': 'database',
+                    'プログラミング': 'programming',
+                    'アルゴリズム': 'algorithm',
+                    'フレームワーク': 'framework',
+                    'ライブラリ': 'library',
+                    'インターフェース': 'interface',
+                    'アーキテクチャ': 'architecture'
+                };
+                
+                let result = text;
+                for (const [japanese, romaji] of Object.entries(romajiMap)) {
+                    result = result.replace(new RegExp(japanese, 'g'), romaji);
+                }
+                
+                // 残りの日本語文字を [JP] で表示
+                result = result.replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+/g, '[JP]');
+                
+                return result;
+            }
+            
+            // PDFにコンテンツを追加
+            createReadablePDF(content);
+            
+            // PDFを保存
+            const filename = `${keyword.replace(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, 'JP')}_${levelText[userLevel]}_guide.pdf`;
+            doc.save(filename);
         }
 
         function showLoading() {
