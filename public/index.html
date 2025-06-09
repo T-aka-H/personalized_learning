@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>パーソナライズ学習アプリ</title>
     <!-- Word文書生成のためのライブラリ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.3.0/docx.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/file-saver/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/docx@7.3.0/build/index.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -559,6 +559,39 @@
                 'intermediate': '中級',
                 'advanced': '上級'
             };
+
+            // docxライブラリが読み込まれているかチェック
+            if (typeof docx === 'undefined') {
+                console.error('docxライブラリが読み込まれていません');
+                // フォールバック: テキストファイルをダウンロード
+                const textContent = `${keyword} 学習ガイド
+対象レベル: ${levelText[userLevel]}
+生成日: ${new Date().toLocaleDateString('ja-JP')}
+
+📊 クイズ結果:
+- 総合正解数: ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)
+- 📗 初級レベル: ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解
+- 📘 中級レベル: ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解  
+- 📕 上級レベル: ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解
+
+判定レベル: ${levelText[userLevel]}
+
+====================================
+
+${content}`;
+
+                const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${keyword}_${levelText[userLevel]}レベル_学習ガイド.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showError('Word文書ライブラリが利用できないため、テキストファイルをダウンロードしました。');
+                return;
+            }
 
             try {
                 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
