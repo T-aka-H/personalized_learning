@@ -1,11 +1,12 @@
-// public/index.html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>パーソナライズ学習アプリ</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- PDFMakeライブラリを使用（日本語対応） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
     <style>
         * {
             margin: 0;
@@ -526,70 +527,112 @@
         }
 
         function generatePDF(content) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // PDF設定
-            const pageWidth = 210;
-            const pageHeight = 297;
-            const margin = 20;
-            const maxWidth = pageWidth - (margin * 2);
-            let y = margin;
-            const lineHeight = 7;
-            
-            // タイトルページ
-            doc.setFontSize(20);
-            doc.text(`${keyword} 学習ガイド`, margin, y);
-            y += 15;
-            
             const levelText = {
                 'beginner': '初級',
                 'intermediate': '中級',
                 'advanced': '上級'
             };
-            
-            doc.setFontSize(14);
-            doc.text(`対象レベル: ${levelText[userLevel]}`, margin, y);
-            y += 10;
-            doc.text(`生成日: ${new Date().toLocaleDateString('ja-JP')}`, margin, y);
-            y += 20;
-            
+
+            // コンテンツを整理
+            const lines = content.split('\n').filter(line => line.trim());
+            const docContent = [];
+
+            // タイトルページ
+            docContent.push({
+                text: `${keyword} 学習ガイド`,
+                style: 'title',
+                alignment: 'center',
+                margin: [0, 50, 0, 20]
+            });
+
+            docContent.push({
+                text: `対象レベル: ${levelText[userLevel]}`,
+                style: 'subtitle',
+                alignment: 'center',
+                margin: [0, 0, 0, 10]
+            });
+
+            docContent.push({
+                text: `生成日: ${new Date().toLocaleDateString('ja-JP')}`,
+                style: 'subtitle',
+                alignment: 'center',
+                margin: [0, 0, 0, 30]
+            });
+
+            // 改ページ
+            docContent.push({ text: '', pageBreak: 'after' });
+
             // コンテンツを処理
-            const lines = content.split('\n');
-            doc.setFontSize(12);
-            
-            lines.forEach(line => {
-                if (y > pageHeight - margin) {
-                    doc.addPage();
-                    y = margin;
-                }
-                
+            lines.forEach((line, index) => {
                 if (line.trim()) {
-                    // ヘッダーの検出と処理
+                    // ヘッダーの検出
                     if (line.startsWith('#') || line.match(/^\d+\./)) {
-                        if (y > margin + 10) y += 5; // ヘッダー前のスペース
-                        doc.setFontSize(14);
-                        const wrappedLines = doc.splitTextToSize(line.replace(/^#+\s*/, ''), maxWidth);
-                        wrappedLines.forEach(wrappedLine => {
-                            doc.text(wrappedLine, margin, y);
-                            y += lineHeight + 2;
+                        // ヘッダーの場合
+                        docContent.push({
+                            text: line.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, ''),
+                            style: 'header',
+                            margin: [0, 15, 0, 10]
                         });
-                        doc.setFontSize(12);
-                        y += 3; // ヘッダー後のスペース
                     } else {
-                        const wrappedLines = doc.splitTextToSize(line, maxWidth);
-                        wrappedLines.forEach(wrappedLine => {
-                            doc.text(wrappedLine, margin, y);
-                            y += lineHeight;
+                        // 通常のテキスト
+                        docContent.push({
+                            text: line,
+                            style: 'body',
+                            margin: [0, 0, 0, 8]
                         });
                     }
-                } else {
-                    y += lineHeight;
                 }
             });
-            
-            // PDFを保存
-            doc.save(`${keyword}_${levelText[userLevel]}レベル_学習ガイド.pdf`);
+
+            // PDFドキュメント定義
+            const documentDefinition = {
+                content: docContent,
+                styles: {
+                    title: {
+                        fontSize: 24,
+                        bold: true,
+                        color: '#667eea'
+                    },
+                    subtitle: {
+                        fontSize: 14,
+                        color: '#666666'
+                    },
+                    header: {
+                        fontSize: 16,
+                        bold: true,
+                        color: '#333333'
+                    },
+                    body: {
+                        fontSize: 11,
+                        lineHeight: 1.4,
+                        color: '#333333'
+                    }
+                },
+                defaultStyle: {
+                    font: 'GenShinGothic' // デフォルトフォント（日本語対応）
+                },
+                pageSize: 'A4',
+                pageMargins: [40, 60, 40, 60]
+            };
+
+            // PDFを生成・ダウンロード
+            try {
+                pdfMake.createPdf(documentDefinition).download(`${keyword}_${levelText[userLevel]}レベル_学習ガイド.pdf`);
+            } catch (error) {
+                console.error('PDF生成エラー:', error);
+                // フォールバック: シンプルなテキストPDF
+                const simpleDoc = {
+                    content: [
+                        { text: `${keyword} 学習ガイド`, fontSize: 20, bold: true, margin: [0, 0, 0, 20] },
+                        { text: `対象レベル: ${levelText[userLevel]}`, margin: [0, 0, 0, 10] },
+                        { text: `生成日: ${new Date().toLocaleDateString('ja-JP')}`, margin: [0, 0, 0, 30] },
+                        { text: content, fontSize: 10, lineHeight: 1.3 }
+                    ],
+                    pageSize: 'A4',
+                    pageMargins: [40, 60, 40, 60]
+                };
+                pdfMake.createPdf(simpleDoc).download(`${keyword}_${levelText[userLevel]}レベル_学習ガイド.pdf`);
+            }
         }
 
         function showLoading() {
