@@ -1,799 +1,744 @@
-function generatePDF(content) {
-    // 日本語テキストファイルのみをダウンロード
-    const levelText = {
-        'beginner': '初級',
-        'intermediate': '中級', 
-        'advanced': '上級'
-    };
-
-    const textContent = `
-${keyword} 学習ガイド
-対象レベル: ${levelText[userLevel]}
-生成日: ${new Date().toLocaleDateString('ja-JP')}
-
-📊 クイズ結果:
-- 総合正解数: ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)
-- 📗 初級レベル: ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解
-- 📘 中級レベル: ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解  
-- 📕 上級レベル: ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>パーソナライズ学習アプリ</title>
-<!-- Word文書生成のためのライブラリ -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.3.0/docx.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/file-saver/2.0.5/FileSaver.min.js"></script>
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パーソナライズ学習アプリ</title>
+    <!-- Word文書生成のためのライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.3.0/docx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/file-saver/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    color: #333;
-}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
 
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-}
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-.card {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 20px;
-    padding: 30px;
-    margin: 20px 0;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    animation: slideUp 0.6s ease-out;
-}
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideUp 0.6s ease-out;
+        }
 
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-.header {
-    text-align: center;
-    margin-bottom: 30px;
-}
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-.header h1 {
-    font-size: 2.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 10px;
-}
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
 
-.header p {
-    color: #666;
-    font-size: 1.1rem;
-}
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
 
-.input-section {
-    margin-bottom: 30px;
-}
+        .input-section {
+            margin-bottom: 30px;
+        }
 
-.input-group {
-    margin-bottom: 20px;
-}
+        .input-group {
+            margin-bottom: 20px;
+        }
 
-label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #555;
-}
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
 
-input[type="text"] {
-    width: 100%;
-    padding: 15px;
-    border: 2px solid #e1e5e9;
-    border-radius: 10px;
-    font-size: 16px;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
 
-input[type="text"]:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
 
-.btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 100%;
-    position: relative;
-    overflow: hidden;
-}
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
 
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
 
-.btn:hover::before {
-    left: 100%;
-}
+        .btn:hover::before {
+            left: 100%;
+        }
 
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-}
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
 
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-}
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
 
-.quiz-section {
-    display: none;
-}
+        .quiz-section {
+            display: none;
+        }
 
-.question {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    padding: 25px;
-    border-radius: 15px;
-    margin-bottom: 25px;
-    border-left: 5px solid #667eea;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-}
+        .question {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
 
-.question h3 {
-    margin-bottom: 20px;
-    color: #333;
-    font-size: 18px;
-}
+        .question h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 18px;
+        }
 
-.options {
-    display: grid;
-    gap: 12px;
-}
+        .options {
+            display: grid;
+            gap: 12px;
+        }
 
-.option {
-    padding: 15px 20px;
-    border: 2px solid #e1e5e9;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: white;
-    position: relative;
-    overflow: hidden;
-}
+        .option {
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
 
-.option::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
-    transition: left 0.3s;
-}
+        .option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.3s;
+        }
 
-.option:hover::before {
-    left: 100%;
-}
+        .option:hover::before {
+            left: 100%;
+        }
 
-.option:hover {
-    border-color: #667eea;
-    background: #f0f4ff;
-    transform: translateX(5px);
-}
+        .option:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateX(5px);
+        }
 
-.option.selected {
-    border-color: #667eea;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    transform: scale(1.02);
-}
+        .option.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.02);
+        }
 
-.progress-bar {
-    width: 100%;
-    height: 10px;
-    background: #e1e5e9;
-    border-radius: 5px;
-    margin-bottom: 25px;
-    overflow: hidden;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e1e5e9;
+            border-radius: 5px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
 
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    transition: width 0.5s ease;
-    border-radius: 5px;
-}
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
 
-.result-section {
-    display: none;
-}
+        .result-section {
+            display: none;
+        }
 
-.level-badge {
-    display: inline-block;
-    padding: 12px 24px;
-    border-radius: 25px;
-    font-weight: 600;
-    margin: 15px 0;
-    font-size: 18px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
+        .level-badge {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            margin: 15px 0;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
 
-.level-beginner {
-    background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
-    color: white;
-}
+        .level-beginner {
+            background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+            color: white;
+        }
 
-.level-intermediate {
-    background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
-    color: white;
-}
+        .level-intermediate {
+            background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+            color: white;
+        }
 
-.level-advanced {
-    background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%);
-    color: white;
-}
+        .level-advanced {
+            background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%);
+            color: white;
+        }
 
-.loading {
-    text-align: center;
-    padding: 40px;
-}
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
 
-.spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #667eea;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-}
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-.error {
-    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-    color: #c62828;
-    padding: 20px;
-    border-radius: 10px;
-    margin: 20px 0;
-    border-left: 4px solid #c62828;
-    box-shadow: 0 4px 12px rgba(198, 40, 40, 0.2);
-}
+        .error {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            color: #c62828;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
+            box-shadow: 0 4px 12px rgba(198, 40, 40, 0.2);
+        }
 
-.hide {
-    display: none;
-}
+        .hide {
+            display: none;
+        }
 
-.success-message {
-    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
-    color: #2e7d32;
-    padding: 20px;
-    border-radius: 10px;
-    margin: 20px 0;
-    border-left: 4px solid #4caf50;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
-}
+        .success-message {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+            color: #2e7d32;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #4caf50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+        }
 
-@media (max-width: 768px) {
-    .container {
-        padding: 10px;
-    }
-    
-    .card {
-        padding: 20px;
-        margin: 10px 0;
-    }
-    
-    .header h1 {
-        font-size: 2rem;
-    }
-}
-</style>
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 20px;
+                margin: 10px 0;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-<div class="card">
-    <div class="header">
-        <h1>🎓 パーソナライズ学習アプリ</h1>
-        <p>あなたのレベルに合わせたカスタム学習コンテンツを生成します</p>
-    </div>
-
-    <!-- 初期入力セクション -->
-    <div id="inputSection" class="input-section">
-        <div class="input-group">
-            <label for="keyword">📚 学習したいキーワードを入力してください:</label>
-            <input type="text" id="keyword" placeholder="例：JavaScript、機械学習、マーケティング、Python">
-        </div>
-        <button class="btn" onclick="startQuiz()">🚀 レベル判定を開始</button>
-    </div>
-
-    <!-- クイズセクション -->
-    <div id="quizSection" class="quiz-section">
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <div id="quizContent"></div>
-        <button class="btn" id="nextBtn" onclick="nextQuestion()" disabled>➡️ 次の問題</button>
-    </div>
-
-    <!-- 結果・学習コンテンツセクション -->
-    <div id="resultSection" class="result-section">
-        <div id="resultContent"></div>
-        <button class="btn" onclick="generateLearningContent()">📖 学習コンテンツを生成</button>
-    </div>
-
-    <!-- ローディング -->
-    <div id="loadingSection" class="loading hide">
-        <div class="spinner"></div>
-        <p>生成中です。しばらくお待ちください...</p>
-    </div>
-
-    <!-- エラー表示 -->
-    <div id="errorSection" class="error hide"></div>
-</div>
-</div>
-
-<script>
-let currentQuestion = 0;
-let questions = [];
-let answers = [];
-let userLevel = '';
-let keyword = '';
-
-async function startQuiz() {
-    keyword = document.getElementById('keyword').value.trim();
-    if (!keyword) {
-        showError('キーワードを入力してください。');
-        return;
-    }
-
-    showLoading();
-    
-    try {
-        const response = await fetch('/api/generate-quiz', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ keyword })
-        });
-
-        if (!response.ok) {
-            throw new Error('クイズの生成に失敗しました');
-        }
-
-        const data = await response.json();
-        questions = data.questions;
-        
-        hideLoading();
-        showQuiz();
-    } catch (error) {
-        hideLoading();
-        showError('問題の生成に失敗しました: ' + error.message);
-    }
-}
-
-function showQuiz() {
-    document.getElementById('inputSection').style.display = 'none';
-    document.getElementById('quizSection').style.display = 'block';
-    currentQuestion = 0;
-    answers = [];
-    displayQuestion();
-}
-
-function displayQuestion() {
-    if (currentQuestion >= questions.length) {
-        finishQuiz();
-        return;
-    }
-
-    const question = questions[currentQuestion];
-    const progress = ((currentQuestion + 1) / questions.length) * 100;
-    document.getElementById('progressFill').style.width = progress + '%';
-    
-    const quizContent = document.getElementById('quizContent');
-    quizContent.innerHTML = `
-        <div class="question">
-            <h3>問題 ${currentQuestion + 1}/10: ${question.question}</h3>
-            <div class="options">
-                ${question.options.map((option, index) => 
-                    `<div class="option" onclick="selectOption(${index})">${option}</div>`
-                ).join('')}
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🎓 パーソナライズ学習アプリ</h1>
+                <p>あなたのレベルに合わせたカスタム学習コンテンツを生成します</p>
             </div>
+
+            <!-- 初期入力セクション -->
+            <div id="inputSection" class="input-section">
+                <div class="input-group">
+                    <label for="keyword">📚 学習したいキーワードを入力してください:</label>
+                    <input type="text" id="keyword" placeholder="例：JavaScript、機械学習、マーケティング、Python">
+                </div>
+                <button class="btn" onclick="startQuiz()">🚀 レベル判定を開始</button>
+            </div>
+
+            <!-- クイズセクション -->
+            <div id="quizSection" class="quiz-section">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="quizContent"></div>
+                <button class="btn" id="nextBtn" onclick="nextQuestion()" disabled>➡️ 次の問題</button>
+            </div>
+
+            <!-- 結果・学習コンテンツセクション -->
+            <div id="resultSection" class="result-section">
+                <div id="resultContent"></div>
+                <button class="btn" onclick="generateLearningContent()">📄 学習コンテンツを生成（Word版）</button>
+            </div>
+
+            <!-- ローディング -->
+            <div id="loadingSection" class="loading hide">
+                <div class="spinner"></div>
+                <p>生成中です。しばらくお待ちください...</p>
+            </div>
+
+            <!-- エラー表示 -->
+            <div id="errorSection" class="error hide"></div>
         </div>
-    `;
-    
-    document.getElementById('nextBtn').disabled = true;
-}
+    </div>
 
-function selectOption(optionIndex) {
-    const options = document.querySelectorAll('.option');
-    options.forEach(option => option.classList.remove('selected'));
-    options[optionIndex].classList.add('selected');
-    
-    answers[currentQuestion] = optionIndex;
-    document.getElementById('nextBtn').disabled = false;
-}
+    <script>
+        let currentQuestion = 0;
+        let questions = [];
+        let answers = [];
+        let userLevel = '';
+        let keyword = '';
 
-function nextQuestion() {
-    currentQuestion++;
-    displayQuestion();
-}
+        async function startQuiz() {
+            keyword = document.getElementById('keyword').value.trim();
+            if (!keyword) {
+                showError('キーワードを入力してください。');
+                return;
+            }
 
-function finishQuiz() {
-    calculateLevel();
-    showResults();
-}
-
-function calculateLevel() {
-    let beginnerCorrect = 0;
-    let intermediateCorrect = 0;
-    let advancedCorrect = 0;
-    let totalCorrect = 0;
-    
-    for (let i = 0; i < questions.length; i++) {
-        if (answers[i] === questions[i].correct) {
-            totalCorrect++;
-            if (questions[i].level === 'beginner') beginnerCorrect++;
-            else if (questions[i].level === 'intermediate') intermediateCorrect++;
-            else if (questions[i].level === 'advanced') advancedCorrect++;
-        }
-    }
-
-    // グローバル変数に結果を保存
-    window.quizResults = {
-        total: questions.length,
-        correct: totalCorrect,
-        beginner: { correct: beginnerCorrect, total: 3 },
-        intermediate: { correct: intermediateCorrect, total: 4 },
-        advanced: { correct: advancedCorrect, total: 3 }
-    };
-
-    // レベル判定ロジック
-    const beginnerRate = beginnerCorrect / 3; // 初級問題3問
-    const intermediateRate = intermediateCorrect / 4; // 中級問題4問
-    const advancedRate = advancedCorrect / 3; // 上級問題3問
-
-    if (advancedRate >= 0.6 && intermediateRate >= 0.5) {
-        userLevel = 'advanced';
-    } else if (intermediateRate >= 0.5 && beginnerRate >= 0.6) {
-        userLevel = 'intermediate';
-    } else {
-        userLevel = 'beginner';
-    }
-}
-
-function showResults() {
-    document.getElementById('quizSection').style.display = 'none';
-    document.getElementById('resultSection').style.display = 'block';
-    
-    const levelText = {
-        'beginner': '初級',
-        'intermediate': '中級',
-        'advanced': '上級'
-    };
-    
-    const levelClass = {
-        'beginner': 'level-beginner',
-        'intermediate': 'level-intermediate',
-        'advanced': 'level-advanced'
-    };
-
-    const levelDescription = {
-        'beginner': '基礎から丁寧に学習していきましょう！',
-        'intermediate': '基礎知識はあります。実践的なスキルを身につけましょう！',
-        'advanced': '高度な知識があります。専門性をさらに深めましょう！'
-    };
-    
-    document.getElementById('resultContent').innerHTML = `
-        <h2>🎉 レベル判定結果</h2>
-        
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
-            <h3>📊 詳細結果</h3>
-            <p><strong>総合正解数:</strong> ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)</p>
+            showLoading();
             
-            <div style="margin: 15px 0;">
-                <p><strong>📗 初級レベル:</strong> ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解</p>
-                <p><strong>📘 中級レベル:</strong> ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解</p>
-                <p><strong>📕 上級レベル:</strong> ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解</p>
-            </div>
-        </div>
+            try {
+                const response = await fetch('/api/generate-quiz', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ keyword })
+                });
 
-        <p>あなたの<strong>${keyword}</strong>に関するレベルは：</p>
-        <div class="level-badge ${levelClass[userLevel]}">${levelText[userLevel]}レベル</div>
-        <p>${levelDescription[userLevel]}</p>
-        <p>このレベルに基づいて、パーソナライズされた学習コンテンツを生成します。</p>
-    `;
-}
+                if (!response.ok) {
+                    throw new Error('クイズの生成に失敗しました');
+                }
 
-async function generateLearningContent() {
-    showLoading();
-    
-    try {
-        const response = await fetch('/api/generate-content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ keyword, level: userLevel })
-        });
-
-        if (!response.ok) {
-            throw new Error('学習コンテンツの生成に失敗しました');
+                const data = await response.json();
+                questions = data.questions;
+                
+                hideLoading();
+                showQuiz();
+            } catch (error) {
+                hideLoading();
+                showError('問題の生成に失敗しました: ' + error.message);
+            }
         }
 
-        const data = await response.json();
-        hideLoading();
-        generatePDF(data.content);
-        showSuccess('学習コンテンツが生成されました！日本語テキストファイルとPDFが順次ダウンロードされます。');
-    } catch (error) {
-        hideLoading();
-        showError('学習コンテンツの生成に失敗しました: ' + error.message);
-    }
-}
+        function showQuiz() {
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('quizSection').style.display = 'block';
+            currentQuestion = 0;
+            answers = [];
+            displayQuestion();
+        }
 
-function generatePDF(content) {
-    // 日本語テキストファイルをダウンロード
-    const levelText = {
-        'beginner': '初級',
-        'intermediate': '中級', 
-        'advanced': '上級'
-    };
+        function displayQuestion() {
+            if (currentQuestion >= questions.length) {
+                finishQuiz();
+                return;
+            }
 
-    const textContent = `
-${keyword} 学習ガイド
-対象レベル: ${levelText[userLevel]}
-生成日: ${new Date().toLocaleDateString('ja-JP')}
+            const question = questions[currentQuestion];
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            const quizContent = document.getElementById('quizContent');
+            quizContent.innerHTML = `
+                <div class="question">
+                    <h3>問題 ${currentQuestion + 1}/10: ${question.question}</h3>
+                    <div class="options">
+                        ${question.options.map((option, index) => 
+                            `<div class="option" onclick="selectOption(${index})">${option}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('nextBtn').disabled = true;
+        }
 
-📊 クイズ結果:
-- 総合正解数: ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)
-- 📗 初級レベル: ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解
-- 📘 中級レベル: ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解  
-- 📕 上級レベル: ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解
+        function selectOption(optionIndex) {
+            const options = document.querySelectorAll('.option');
+            options.forEach(option => option.classList.remove('selected'));
+            options[optionIndex].classList.add('selected');
+            
+            answers[currentQuestion] = optionIndex;
+            document.getElementById('nextBtn').disabled = false;
+        }
 
-判定レベル: ${levelText[userLevel]}
+        function nextQuestion() {
+            currentQuestion++;
+            displayQuestion();
+        }
 
-====================================
+        function finishQuiz() {
+            calculateLevel();
+            showResults();
+        }
 
-${content}
-    `.trim();
+        function calculateLevel() {
+            let beginnerCorrect = 0;
+            let intermediateCorrect = 0;
+            let advancedCorrect = 0;
+            let totalCorrect = 0;
+            
+            for (let i = 0; i < questions.length; i++) {
+                if (answers[i] === questions[i].correct) {
+                    totalCorrect++;
+                    if (questions[i].level === 'beginner') beginnerCorrect++;
+                    else if (questions[i].level === 'intermediate') intermediateCorrect++;
+                    else if (questions[i].level === 'advanced') advancedCorrect++;
+                }
+            }
 
-    // テキストファイルとしてダウンロード
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${keyword}_${levelText[userLevel]}レベル_学習ガイド.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+            // グローバル変数に結果を保存
+            window.quizResults = {
+                total: questions.length,
+                correct: totalCorrect,
+                beginner: { correct: beginnerCorrect, total: 3 },
+                intermediate: { correct: intermediateCorrect, total: 4 },
+                advanced: { correct: advancedCorrect, total: 3 }
+            };
 
-    // Word文書も生成
-    setTimeout(() => {
-        generateWordDocument(content, textContent);
-    }, 1000);
-}
+            // レベル判定ロジック
+            const beginnerRate = beginnerCorrect / 3; // 初級問題3問
+            const intermediateRate = intermediateCorrect / 4; // 中級問題4問
+            const advancedRate = advancedCorrect / 3; // 上級問題3問
 
-function generateWordDocument(content, fullTextContent) {
-    const levelText = {
-        'beginner': '初級',
-        'intermediate': '中級',
-        'advanced': '上級'
-    };
+            if (advancedRate >= 0.6 && intermediateRate >= 0.5) {
+                userLevel = 'advanced';
+            } else if (intermediateRate >= 0.5 && beginnerRate >= 0.6) {
+                userLevel = 'intermediate';
+            } else {
+                userLevel = 'beginner';
+            }
+        }
 
-    try {
-        const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+        function showResults() {
+            document.getElementById('quizSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'block';
+            
+            const levelText = {
+                'beginner': '初級',
+                'intermediate': '中級',
+                'advanced': '上級'
+            };
+            
+            const levelClass = {
+                'beginner': 'level-beginner',
+                'intermediate': 'level-intermediate',
+                'advanced': 'level-advanced'
+            };
 
-        // Word文書の作成
-        const doc = new Document({
-            sections: [{
-                children: [
-                    // タイトル
-                    new Paragraph({
-                        text: `${keyword} 学習ガイド`,
-                        heading: HeadingLevel.TITLE,
-                        spacing: { after: 300 }
-                    }),
+            const levelDescription = {
+                'beginner': '基礎から丁寧に学習していきましょう！',
+                'intermediate': '基礎知識はあります。実践的なスキルを身につけましょう！',
+                'advanced': '高度な知識があります。専門性をさらに深めましょう！'
+            };
+            
+            document.getElementById('resultContent').innerHTML = `
+                <h2>🎉 レベル判定結果</h2>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h3>📊 詳細結果</h3>
+                    <p><strong>総合正解数:</strong> ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)</p>
+                    
+                    <div style="margin: 15px 0;">
+                        <p><strong>📗 初級レベル:</strong> ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解</p>
+                        <p><strong>📘 中級レベル:</strong> ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解</p>
+                        <p><strong>📕 上級レベル:</strong> ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解</p>
+                    </div>
+                </div>
 
-                    // 基本情報
-                    new Paragraph({
+                <p>あなたの<strong>${keyword}</strong>に関するレベルは：</p>
+                <div class="level-badge ${levelClass[userLevel]}">${levelText[userLevel]}レベル</div>
+                <p>${levelDescription[userLevel]}</p>
+                <p>このレベルに基づいて、パーソナライズされた学習コンテンツを生成します。</p>
+            `;
+        }
+
+        async function generateLearningContent() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/generate-content', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ keyword, level: userLevel })
+                });
+
+                if (!response.ok) {
+                    throw new Error('学習コンテンツの生成に失敗しました');
+                }
+
+                const data = await response.json();
+                hideLoading();
+                generatePDF(data.content);
+                showSuccess('学習コンテンツが生成されました！日本語テキストファイルとPDFが順次ダウンロードされます。');
+            } catch (error) {
+                hideLoading();
+                showError('学習コンテンツの生成に失敗しました: ' + error.message);
+            }
+        }
+
+        function generatePDF(content) {
+            // Word文書のみを生成
+            generateWordDocument(content);
+        }
+
+        function generateWordDocument(content) {
+            const levelText = {
+                'beginner': '初級',
+                'intermediate': '中級',
+                'advanced': '上級'
+            };
+
+            try {
+                const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+
+                // Word文書の作成
+                const doc = new Document({
+                    sections: [{
                         children: [
-                            new TextRun({ text: "対象レベル: ", bold: true }),
-                            new TextRun(levelText[userLevel])
-                        ],
-                        spacing: { after: 200 }
-                    }),
+                            // タイトル
+                            new Paragraph({
+                                text: `${keyword} 学習ガイド`,
+                                heading: HeadingLevel.TITLE,
+                                spacing: { after: 300 }
+                            }),
 
-                    new Paragraph({
-                        children: [
-                            new TextRun({ text: "生成日: ", bold: true }),
-                            new TextRun(new Date().toLocaleDateString('ja-JP'))
-                        ],
-                        spacing: { after: 300 }
-                    }),
-
-                    // クイズ結果
-                    new Paragraph({
-                        text: "📊 クイズ結果",
-                        heading: HeadingLevel.HEADING_1,
-                        spacing: { before: 300, after: 200 }
-                    }),
-
-                    new Paragraph({
-                        text: `総合正解数: ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)`,
-                        spacing: { after: 100 }
-                    }),
-
-                    new Paragraph({
-                        text: `📗 初級レベル: ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解`,
-                        spacing: { after: 100 }
-                    }),
-
-                    new Paragraph({
-                        text: `📘 中級レベル: ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解`,
-                        spacing: { after: 100 }
-                    }),
-
-                    new Paragraph({
-                        text: `📕 上級レベル: ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解`,
-                        spacing: { after: 100 }
-                    }),
-
-                    new Paragraph({
-                        children: [
-                            new TextRun({ text: "判定レベル: ", bold: true }),
-                            new TextRun({ text: levelText[userLevel], bold: true, color: "2563EB" })
-                        ],
-                        spacing: { before: 200, after: 400 }
-                    }),
-
-                    // 区切り線的な空白
-                    new Paragraph({
-                        text: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-                        spacing: { before: 200, after: 200 }
-                    }),
-
-                    // 学習コンテンツ
-                    new Paragraph({
-                        text: "学習コンテンツ",
-                        heading: HeadingLevel.HEADING_1,
-                        spacing: { before: 300, after: 200 }
-                    }),
-
-                    // コンテンツを段落に分割して追加
-                    ...content.split('\n').filter(line => line.trim()).map(line => {
-                        const trimmedLine = line.trim();
-                        
-                        // ヘッダーの検出
-                        if (trimmedLine.startsWith('#') || trimmedLine.match(/^\d+\./)) {
-                            const headerText = trimmedLine.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '');
-                            return new Paragraph({
-                                text: headerText,
-                                heading: HeadingLevel.HEADING_2,
-                                spacing: { before: 300, after: 200 }
-                            });
-                        } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
-                            // 太字テキスト
-                            return new Paragraph({
+                            // 基本情報
+                            new Paragraph({
                                 children: [
-                                    new TextRun({ 
-                                        text: trimmedLine.replace(/\*\*/g, ''), 
-                                        bold: true 
-                                    })
+                                    new TextRun({ text: "対象レベル: ", bold: true }),
+                                    new TextRun(levelText[userLevel])
                                 ],
-                                spacing: { before: 200, after: 100 }
-                            });
-                        } else if (trimmedLine.startsWith('*') || trimmedLine.startsWith('-')) {
-                            // リスト項目
-                            return new Paragraph({
-                                text: `• ${trimmedLine.replace(/^[*-]\s*/, '')}`,
+                                spacing: { after: 200 }
+                            }),
+
+                            new Paragraph({
+                                children: [
+                                    new TextRun({ text: "生成日: ", bold: true }),
+                                    new TextRun(new Date().toLocaleDateString('ja-JP'))
+                                ],
+                                spacing: { after: 300 }
+                            }),
+
+                            // クイズ結果
+                            new Paragraph({
+                                text: "📊 クイズ結果",
+                                heading: HeadingLevel.HEADING_1,
+                                spacing: { before: 300, after: 200 }
+                            }),
+
+                            new Paragraph({
+                                text: `総合正解数: ${window.quizResults.correct}問 / ${window.quizResults.total}問 (${Math.round((window.quizResults.correct / window.quizResults.total) * 100)}%)`,
                                 spacing: { after: 100 }
-                            });
-                        } else {
-                            // 通常のテキスト
-                            return new Paragraph({
-                                text: trimmedLine,
-                                spacing: { after: 150 }
-                            });
-                        }
-                    })
-                ]
-            }]
+                            }),
+
+                            new Paragraph({
+                                text: `📗 初級レベル: ${window.quizResults.beginner.correct} / ${window.quizResults.beginner.total}問正解`,
+                                spacing: { after: 100 }
+                            }),
+
+                            new Paragraph({
+                                text: `📘 中級レベル: ${window.quizResults.intermediate.correct} / ${window.quizResults.intermediate.total}問正解`,
+                                spacing: { after: 100 }
+                            }),
+
+                            new Paragraph({
+                                text: `📕 上級レベル: ${window.quizResults.advanced.correct} / ${window.quizResults.advanced.total}問正解`,
+                                spacing: { after: 100 }
+                            }),
+
+                            new Paragraph({
+                                children: [
+                                    new TextRun({ text: "判定レベル: ", bold: true }),
+                                    new TextRun({ text: levelText[userLevel], bold: true, color: "2563EB" })
+                                ],
+                                spacing: { before: 200, after: 400 }
+                            }),
+
+                            // 区切り線的な空白
+                            new Paragraph({
+                                text: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                                spacing: { before: 200, after: 200 }
+                            }),
+
+                            // 学習コンテンツ
+                            new Paragraph({
+                                text: "学習コンテンツ",
+                                heading: HeadingLevel.HEADING_1,
+                                spacing: { before: 300, after: 200 }
+                            }),
+
+                            // コンテンツを段落に分割して追加
+                            ...content.split('\n').filter(line => line.trim()).map(line => {
+                                const trimmedLine = line.trim();
+                                
+                                // ヘッダーの検出
+                                if (trimmedLine.startsWith('#') || trimmedLine.match(/^\d+\./)) {
+                                    const headerText = trimmedLine.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '');
+                                    return new Paragraph({
+                                        text: headerText,
+                                        heading: HeadingLevel.HEADING_2,
+                                        spacing: { before: 300, after: 200 }
+                                    });
+                                } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
+                                    // 太字テキスト
+                                    return new Paragraph({
+                                        children: [
+                                            new TextRun({ 
+                                                text: trimmedLine.replace(/\*\*/g, ''), 
+                                                bold: true 
+                                            })
+                                        ],
+                                        spacing: { before: 200, after: 100 }
+                                    });
+                                } else if (trimmedLine.startsWith('*') || trimmedLine.startsWith('-')) {
+                                    // リスト項目
+                                    return new Paragraph({
+                                        text: `• ${trimmedLine.replace(/^[*-]\s*/, '')}`,
+                                        spacing: { after: 100 }
+                                    });
+                                } else {
+                                    // 通常のテキスト
+                                    return new Paragraph({
+                                        text: trimmedLine,
+                                        spacing: { after: 150 }
+                                    });
+                                }
+                            })
+                        ]
+                    }]
+                });
+
+                // Word文書を生成してダウンロード
+                Packer.toBlob(doc).then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${keyword}_${levelText[userLevel]}レベル_学習ガイド.docx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }).catch(error => {
+                    console.error('Word文書生成エラー:', error);
+                    showError('Word文書の生成に失敗しました。');
+                });
+
+            } catch (error) {
+                console.error('Word文書生成エラー:', error);
+                showError('Word文書の生成に失敗しました。ライブラリの読み込みを確認してください。');
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSection').classList.remove('hide');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSection').classList.add('hide');
+        }
+
+        function showError(message) {
+            const errorSection = document.getElementById('errorSection');
+            errorSection.textContent = message;
+            errorSection.classList.remove('hide');
+            setTimeout(() => {
+                errorSection.classList.add('hide');
+            }, 5000);
+        }
+
+        function hideError() {
+            document.getElementById('errorSection').classList.add('hide');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            document.querySelector('.card').appendChild(successDiv);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 5000);
+        }
+
+        // キーボードサポート
+        document.getElementById('keyword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startQuiz();
+            }
         });
-
-        // Word文書を生成してダウンロード
-        Packer.toBlob(doc).then(blob => {
-            saveAs(blob, `${keyword}_${levelText[userLevel]}レベル_学習ガイド.docx`);
-        });
-
-    } catch (error) {
-        console.error('Word文書生成エラー:', error);
-        // フォールバック: 追加のテキストファイル
-        const fallbackBlob = new Blob([fullTextContent], { type: 'text/plain;charset=utf-8' });
-        const fallbackUrl = URL.createObjectURL(fallbackBlob);
-        const fallbackA = document.createElement('a');
-        fallbackA.href = fallbackUrl;
-        fallbackA.download = `${keyword}_${levelText[userLevel]}レベル_学習ガイド_backup.txt`;
-        document.body.appendChild(fallbackA);
-        fallbackA.click();
-        document.body.removeChild(fallbackA);
-        URL.revokeObjectURL(fallbackUrl);
-    }
-}
-
-function showLoading() {
-    document.getElementById('loadingSection').classList.remove('hide');
-}
-
-function hideLoading() {
-    document.getElementById('loadingSection').classList.add('hide');
-}
-
-function showError(message) {
-    const errorSection = document.getElementById('errorSection');
-    errorSection.textContent = message;
-    errorSection.classList.remove('hide');
-    setTimeout(() => {
-        errorSection.classList.add('hide');
-    }, 5000);
-}
-
-function hideError() {
-    document.getElementById('errorSection').classList.add('hide');
-}
-
-function showSuccess(message) {
-    const successDiv = document.createElement('div');
-    successDiv.className = 'success-message';
-    successDiv.textContent = message;
-    document.querySelector('.card').appendChild(successDiv);
-    
-    setTimeout(() => {
-        successDiv.remove();
-    }, 5000);
-}
-
-// キーボードサポート
-document.getElementById('keyword').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        startQuiz();
-    }
-});
-</script>
+    </script>
 </body>
 </html>
